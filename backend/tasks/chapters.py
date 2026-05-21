@@ -159,7 +159,10 @@ def _regenerate_one_chapter_impl(db: Session, task_id: int, chapter_number: int)
                 prompt_step="chapter_outline",
                 task_id=task_id,
             )
-        context_chunks = kb_search(query=full_name, top_k=KB_TOP_K, task_id=task_id)
+        kb_query = full_name
+        if outline_content:
+            kb_query = full_name + "\n" + outline_content
+        context_chunks = kb_search(query=kb_query, top_k=KB_TOP_K, task_id=task_id)
         context_text = "\n\n".join(context_chunks) if context_chunks else ""
         content_messages = build_chapter_content_messages(
             chapter_full_name=full_name,
@@ -359,7 +362,10 @@ def run_chapters(
                     _set_chapters_failed(db, task_id, f"第{num}章小节大纲生成失败: {str(e)[:500]}")
                     return
 
-            context_chunks = kb_search(query=full_name, top_k=KB_TOP_K, task_id=task_id)
+            kb_query = full_name
+            if outline_content:
+                kb_query = full_name + "\n" + outline_content
+            context_chunks = kb_search(query=kb_query, top_k=KB_TOP_K, task_id=task_id)
             context_text = "\n\n".join(context_chunks) if context_chunks else ""
 
             try:

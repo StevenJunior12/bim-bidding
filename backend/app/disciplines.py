@@ -1,6 +1,7 @@
 """Built-in engineering disciplines for PromptProfile (single source of truth).
 
 Includes **BIM** as a first-class discipline (product origin: BIM 技术标)，与建筑/机电等并列；
+**智慧运维** 用于数字孪生 / 智慧运营管理平台 / 多子系统集成类采购技术标，与偏弱电集成的 **智能化** 区分；
 智能生成与主/非主专业隔离逻辑均从 DISCIPLINES 推导，勿在其它处硬编码专业表。
 """
 
@@ -18,6 +19,7 @@ DISCIPLINES: Final[tuple[str, ...]] = (
     "暖通",
     "电气",
     "智能化",
+    "智慧运维",
     "景观",
     "内装",
     "可研",

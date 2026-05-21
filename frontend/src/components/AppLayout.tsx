@@ -28,6 +28,7 @@ const mainNavItems = [
   { key: '/review', label: '标书校审' },
 ]
 const bottomNavItems = [
+  { key: '/knowledge-base', label: '知识库' },
   { key: '/scene-template', label: '场景与模板' },
   { key: '/settings', label: '设置' },
 ]
@@ -62,9 +63,9 @@ export default function AppLayout() {
       ? '/'
       : location.pathname.startsWith('/one-click')
         ? '/one-click'
-        : location.pathname.startsWith('/scene-template')
-          ? '/scene-template'
-          : location.pathname.startsWith('/settings')
+        : location.pathname.startsWith('/knowledge-base')
+          ? '/knowledge-base'
+          : location.pathname.startsWith('/scene-template')
           ? '/settings'
           : location.pathname.startsWith('/compare')
             ? '/compare'

@@ -20,6 +20,7 @@ def test_prompt_profiles_disciplines_list():
         assert "建筑" in items
         assert "BIM" in items
         assert "暖通" in items
+        assert "智慧运维" in items
     finally:
         app.dependency_overrides.pop(verify_api_key, None)
 

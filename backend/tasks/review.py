@@ -8,7 +8,7 @@ import logging
 
 from app import config
 from app.database import SessionLocal
-from app.knowledge_base import search as kb_search
+
 from app.llm import call_llm
 from app.models import TaskStep
 from app.params_compat import extract_requirements_list
@@ -26,7 +26,7 @@ from tasks.scope_guard import validate_task_scope
 
 logger = logging.getLogger(__name__)
 
-REVIEW_KB_TOP_K = 6
+
 REVIEW_TEMPERATURE = 0.2
 ERROR_MESSAGE_MAX_LEN = 2000
 PARAMS_SUMMARY_MAX_LEN = 6000
@@ -182,16 +182,13 @@ def run_review(task_id: int, tenant_id: str | None = None, user_id: str | None =
             full_name = ch.get("full_name") or f"第{num}章 {ch.get('title', '')}"
             chapter_content = chapters_content.get(str(num)) or ""
 
-            context_chunks = kb_search(query=full_name, top_k=REVIEW_KB_TOP_K, task_id=task_id)
-            kb_context = "\n\n".join(context_chunks) if context_chunks else ""
-
             try:
                 messages = build_review_messages(
                     chapter_full_name=full_name,
                     chapter_content=chapter_content,
                     analyze_text=analyze_text,
                     params_review_context=params_summary,
-                    kb_context=kb_context,
+                    kb_context="",
                     semantic_overrides=merged,
                 )
                 llm_text = call_llm(
@@ -344,8 +341,6 @@ def run_review_chapter(
 
         provider, model = get_llm_for_step("review")
         merged = load_merged_semantic_for_task(db, task_id)
-        context_chunks = kb_search(query=full_name, top_k=REVIEW_KB_TOP_K, task_id=task_id)
-        kb_context = "\n\n".join(context_chunks) if context_chunks else ""
 
         try:
             messages = build_review_messages(
@@ -353,8 +348,7 @@ def run_review_chapter(
                 chapter_content=chapter_content,
                 analyze_text=analyze_text,
                 params_review_context=params_summary,
-                kb_context=kb_context,
-                semantic_overrides=merged,
+                kb_context="",
             )
             llm_text = call_llm(
                 provider=provider,

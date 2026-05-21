@@ -25,7 +25,7 @@ router = APIRouter(tags=["settings"])
 
 
 class PostLlmBody(BaseModel):
-    provider: Literal["deepseek"] = Field(..., description="LLM provider")
+    provider: Literal["deepseek", "siliconflow"] = Field(..., description="LLM provider")
     api_key: str | None = Field(None, description="API key (plain); omit or empty to keep current")
     base_url: str | None = Field(None, description="Base URL; omit to keep current, empty string to clear")
     clear: bool = Field(False, description="If true, remove stored API key and base_url for this provider")
@@ -195,12 +195,13 @@ def post_settings_export_format(
 
 
 class PostKnowledgeBaseBody(BaseModel):
-    """Knowledge base type and RAGFlow config; empty api_key = keep current."""
+    """Knowledge base type and config; empty api_key = keep current."""
 
-    kb_type: Literal["none", "ragflow"] = Field(..., description="Knowledge base type")
+    kb_type: Literal["none", "ragflow", "internal"] = Field(..., description="Knowledge base type")
     ragflow_api_url: str | None = Field(None, description="RAGFlow base URL; omit to keep current")
     ragflow_api_key: str | None = Field(None, description="RAGFlow API key; omit or empty to keep current")
     ragflow_dataset_ids: str | None = Field(None, description="RAGFlow dataset IDs, comma-separated")
+    internal_collection_id: int | None = Field(None, description="Internal KB collection ID (when kb_type=internal)")
 
 
 @router.get("/knowledge-base")
@@ -221,6 +222,7 @@ def post_settings_knowledge_base(
             ragflow_api_url=body.ragflow_api_url,
             ragflow_api_key=body.ragflow_api_key,
             ragflow_dataset_ids=body.ragflow_dataset_ids,
+            internal_collection_id=body.internal_collection_id,
             tenant_id=principal.tenant_id,
             user_id=principal.user_id,
         )

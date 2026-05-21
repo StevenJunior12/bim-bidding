@@ -2,6 +2,7 @@
 
 # model_id -> provider (used for API key / base_url lookup)
 MODEL_TO_PROVIDER: dict[str, str] = {
+    "deepseek-v4-flash": "deepseek",
     "deepseek-chat": "deepseek",
     "deepseek-reasoner": "deepseek",
     "deepseek-v3": "deepseek",
@@ -9,6 +10,7 @@ MODEL_TO_PROVIDER: dict[str, str] = {
 
 # Display order and label for settings UI (id, label, provider)
 SUPPORTED_MODELS: list[tuple[str, str, str]] = [
+    ("deepseek-v4-flash", "DeepSeek V4 Flash", "deepseek"),
     ("deepseek-chat", "DeepSeek Chat", "deepseek"),
     ("deepseek-reasoner", "DeepSeek Reasoner", "deepseek"),
     ("deepseek-v3", "DeepSeek V3", "deepseek"),

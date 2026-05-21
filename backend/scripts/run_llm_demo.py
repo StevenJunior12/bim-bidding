@@ -15,10 +15,10 @@ from app.llm import call_llm
 
 
 def main():
-    print("Calling DeepSeek (deepseek-chat)...")
+    print("Calling DeepSeek (deepseek-v4-flash)...")
     content = call_llm(
         "deepseek",
-        "deepseek-chat",
+        "deepseek-v4-flash",
         [{"role": "user", "content": "你好，回复一句话"}],
     )
     print("Response:", content)

@@ -93,13 +93,16 @@ export interface KnowledgeBaseConfig {
   ragflow_configured: boolean
   ragflow_masked_key: string | null
   ragflow_dataset_ids: string
+  internal_collection_id: number | null
+  siliconflow_configured: boolean
 }
 
 export interface PostKnowledgeBaseBody {
-  kb_type: 'none' | 'ragflow'
+  kb_type: 'none' | 'ragflow' | 'internal'
   ragflow_api_url?: string | null
   ragflow_api_key?: string | null
   ragflow_dataset_ids?: string | null
+  internal_collection_id?: number | null
 }
 
 export async function getSettingsKnowledgeBase(): Promise<KnowledgeBaseConfig> {

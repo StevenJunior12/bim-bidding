@@ -30,6 +30,7 @@ from app.routers import (
     review as review_router,
 )
 from app.routers import prompt_profiles as prompt_profiles_router
+from app.routers import knowledge_base as kb_router
 
 logger = logging.getLogger(__name__)
 app = FastAPI(
@@ -47,6 +48,7 @@ app.include_router(export_router.router)
 app.include_router(compare.router, prefix="/api")
 app.include_router(settings.router, prefix="/api/settings")
 app.include_router(prompt_profiles_router.router)
+app.include_router(kb_router.router)
 
 # CORS: allow frontend dev server (localhost) + optional LAN Vite (same port 5173)
 _cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").strip().split(",")
@@ -97,6 +99,16 @@ async def startup():
         logger.warning("Database connection check failed: %s", e)
     # Create tables (tasks, task_steps) if not exist
     import app.models  # noqa: F401 - register models with Base.metadata
+
+    # pgvector extension must be created BEFORE tables that use VECTOR type
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
+        logger.info("pgvector extension ensured")
+    except Exception as e:
+        logger.warning("Could not create pgvector extension: %s", e)
+
     Base.metadata.create_all(bind=engine)
     logger.info("Tables created or already exist")
     # Add output_snapshot_before_regenerate to task_steps if missing (6.1 optional)
@@ -443,6 +455,31 @@ async def startup():
         logger.info("Unique indexes for scoped kb/export settings ensured")
     except Exception as e:
         logger.warning("Could not ensure scoped settings unique indexes: %s", e)
+
+    # HNSW index for kb_chunks embedding similarity search
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_kb_chunks_embedding "
+                "ON kb_chunks USING hnsw (embedding vector_cosine_ops)"
+            ))
+            conn.commit()
+        logger.info("HNSW index on kb_chunks.embedding ensured")
+    except Exception as e:
+        logger.warning("Could not create HNSW index on kb_chunks: %s", e)
+
+    # Add internal_collection_id to kb_settings (internal KB selection)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE kb_settings ADD COLUMN internal_collection_id INTEGER"))
+            conn.commit()
+        logger.info("Added column internal_collection_id to kb_settings")
+    except Exception as e:
+        err = str(e).lower()
+        if "duplicate" in err or "already exists" in err or "exists" in err:
+            logger.debug("Column internal_collection_id already exists on kb_settings")
+        else:
+            logger.warning("Could not add internal_collection_id to kb_settings: %s", e)
 
 
 @app.get("/health")

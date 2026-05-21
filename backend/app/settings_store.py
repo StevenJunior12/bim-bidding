@@ -11,7 +11,7 @@ from app.models import ExportFormatSetting, KbSetting, LlmSetting
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_PROVIDERS = ("deepseek",)
+SUPPORTED_PROVIDERS = ("deepseek", "siliconflow")
 
 # Fernet key (URL-safe base64, 32 bytes). SEC-02: no placeholder fallback — missing or invalid key fails at import.
 # 值来自 pydantic-settings（.env / 环境变量 SETTINGS_SECRET_KEY），与 os.getenv 双轨已去除。
@@ -393,7 +393,7 @@ def set_export_format_config(
 
 # --- Knowledge base settings (single row: kb_type + RAGFlow config) ---
 
-VALID_KB_TYPES = ("none", "ragflow")
+VALID_KB_TYPES = ("none", "ragflow", "internal")
 
 
 def _kb_config_from_env() -> dict:
@@ -423,20 +423,33 @@ def get_kb_config(tenant_id: str | None = None, user_id: str | None = None) -> d
             .first()
         )
         if not row:
-            return _kb_config_from_env()
+            env_cfg = _kb_config_from_env()
+            env_cfg["internal_collection_id"] = None
+            env_cfg["siliconflow_configured"] = False
+            return env_cfg
         plain_key = decrypt_api_key(row.ragflow_encrypted_api_key) if row.ragflow_encrypted_api_key else None
         has_url = bool(row.ragflow_api_url and (row.ragflow_api_url or "").strip())
         has_ids = bool(row.ragflow_dataset_ids and (row.ragflow_dataset_ids or "").strip())
+
+        # Check SiliconFlow config
+        sf_key = get_api_key_from_db("siliconflow", tenant_id=tenant, user_id=user)
+        sf_configured = bool(sf_key)
+
         return {
             "kb_type": row.kb_type or "none",
             "ragflow_api_url": (row.ragflow_api_url or "").strip() or None,
             "ragflow_configured": bool(has_url and plain_key and has_ids),
             "ragflow_masked_key": mask_api_key(plain_key) if plain_key else None,
             "ragflow_dataset_ids": (row.ragflow_dataset_ids or "").strip() or "",
+            "internal_collection_id": getattr(row, "internal_collection_id", None),
+            "siliconflow_configured": sf_configured,
         }
     except Exception as e:
         logger.debug("get_kb_config fallback to env: %s", e)
-        return _kb_config_from_env()
+        env_cfg = _kb_config_from_env()
+        env_cfg["internal_collection_id"] = None
+        env_cfg["siliconflow_configured"] = False
+        return env_cfg
     finally:
         db.close()
 
@@ -446,6 +459,7 @@ def set_kb_config(
     ragflow_api_url: str | None = None,
     ragflow_api_key: str | None = None,
     ragflow_dataset_ids: str | None = None,
+    internal_collection_id: int | None = None,
     tenant_id: str | None = None,
     user_id: str | None = None,
 ) -> None:
@@ -455,6 +469,17 @@ def set_kb_config(
     tenant, user = _resolve_scope(tenant_id, user_id)
     db: Session = SessionLocal()
     try:
+        # Validate collection ownership when internal is selected
+        if kb_type == "internal" and internal_collection_id is not None:
+            from app.models import KbCollection
+            col = db.query(KbCollection).filter(
+                KbCollection.id == internal_collection_id,
+                KbCollection.tenant_id == tenant,
+                KbCollection.user_id == user,
+            ).first()
+            if not col:
+                raise ValueError("知识库不存在或不属于当前用户")
+
         row = (
             db.query(KbSetting)
             .filter(
@@ -475,6 +500,7 @@ def set_kb_config(
                 updated_at=now,
             )
             db.add(row)
+            db.flush()
         else:
             row.kb_type = kb_type
             row.updated_at = now
@@ -487,6 +513,14 @@ def set_kb_config(
                     row.ragflow_encrypted_api_key = None  # explicit empty string = clear key
             if ragflow_dataset_ids is not None:
                 row.ragflow_dataset_ids = ragflow_dataset_ids.strip() or None
+
+        # Set internal_collection_id if the column exists
+        if hasattr(row, "internal_collection_id") or kb_type == "internal":
+            if internal_collection_id is not None:
+                row.internal_collection_id = internal_collection_id
+            elif kb_type != "internal":
+                row.internal_collection_id = None
+
         db.commit()
     finally:
         db.close()

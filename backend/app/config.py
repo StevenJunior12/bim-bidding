@@ -40,18 +40,18 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=8192, validation_alias="LLM_MAX_TOKENS")
 
     analyze_llm_provider: str = Field(default="deepseek", validation_alias="ANALYZE_LLM_PROVIDER")
-    analyze_llm_model: str = Field(default="deepseek-chat", validation_alias="ANALYZE_LLM_MODEL")
+    analyze_llm_model: str = Field(default="deepseek-v4-flash", validation_alias="ANALYZE_LLM_MODEL")
     params_llm_provider: str = Field(default="deepseek", validation_alias="PARAMS_LLM_PROVIDER")
-    params_llm_model: str = Field(default="deepseek-chat", validation_alias="PARAMS_LLM_MODEL")
+    params_llm_model: str = Field(default="deepseek-v4-flash", validation_alias="PARAMS_LLM_MODEL")
     framework_llm_provider: str = Field(default="deepseek", validation_alias="FRAMEWORK_LLM_PROVIDER")
-    framework_llm_model: str = Field(default="deepseek-chat", validation_alias="FRAMEWORK_LLM_MODEL")
+    framework_llm_model: str = Field(default="deepseek-v4-flash", validation_alias="FRAMEWORK_LLM_MODEL")
     chapter_llm_provider: str = Field(default="deepseek", validation_alias="CHAPTER_LLM_PROVIDER")
-    chapter_llm_model: str = Field(default="deepseek-chat", validation_alias="CHAPTER_LLM_MODEL")
+    chapter_llm_model: str = Field(default="deepseek-v4-flash", validation_alias="CHAPTER_LLM_MODEL")
     prompt_profile_gen_llm_provider: str = Field(
         default="deepseek", validation_alias="PROMPT_PROFILE_GEN_LLM_PROVIDER"
     )
     prompt_profile_gen_llm_model: str = Field(
-        default="deepseek-chat", validation_alias="PROMPT_PROFILE_GEN_LLM_MODEL"
+        default="deepseek-v4-flash", validation_alias="PROMPT_PROFILE_GEN_LLM_MODEL"
     )
 
     chapter_outline_analyze_max_len: int = Field(
@@ -69,6 +69,11 @@ class Settings(BaseSettings):
     ragflow_api_url: str = ""
     ragflow_api_key: str = ""
     ragflow_dataset_ids_raw: str = Field(default="", validation_alias="RAGFLOW_DATASET_IDS")
+
+    siliconflow_base_url: str = Field(default="https://api.siliconflow.cn/v1", validation_alias="SILICONFLOW_BASE_URL")
+    siliconflow_embedding_model: str = Field(default="BAAI/bge-m3", validation_alias="SILICONFLOW_EMBEDDING_MODEL")
+    siliconflow_embedding_dims: int = Field(default=1024, validation_alias="SILICONFLOW_EMBEDDING_DIMS")
+    kb_chunk_batch_size: int = Field(default=32, validation_alias="KB_CHUNK_BATCH_SIZE")
 
     knowledge_base_type_env: str = Field(default="", validation_alias="KNOWLEDGE_BASE_TYPE")
 
@@ -131,6 +136,11 @@ class Settings(BaseSettings):
     @field_validator("ragflow_api_url", mode="after")
     @classmethod
     def _normalize_ragflow_api_url(cls, v: str) -> str:
+        return v.strip().rstrip("/")
+
+    @field_validator("siliconflow_base_url", mode="after")
+    @classmethod
+    def _normalize_siliconflow_base_url(cls, v: str) -> str:
         return v.strip().rstrip("/")
 
     @model_validator(mode="after")
@@ -197,6 +207,10 @@ RAGFLOW_API_URL: str = settings.ragflow_api_url
 RAGFLOW_API_KEY: str = settings.ragflow_api_key
 RAGFLOW_DATASET_IDS_RAW: str = settings.ragflow_dataset_ids_raw
 KNOWLEDGE_BASE_TYPE: str = settings.knowledge_base_type
+SILICONFLOW_BASE_URL: str = settings.siliconflow_base_url
+SILICONFLOW_EMBEDDING_MODEL: str = settings.siliconflow_embedding_model
+SILICONFLOW_EMBEDDING_DIMS: int = settings.siliconflow_embedding_dims
+KB_CHUNK_BATCH_SIZE: int = settings.kb_chunk_batch_size
 LOG_CONTRACT_PROMPTS: bool = settings.log_contract_prompts
 LOG_CONTRACT_MAX_CHARS: int = settings.log_contract_max_chars
 LOG_CONTRACT_PROMPTS_FILE: str = settings.log_contract_prompts_file
@@ -249,4 +263,6 @@ def get_llm_base_url(provider: str, task_id: int | None = None) -> str:
         return url.rstrip("/")
     if provider == "deepseek":
         return settings.deepseek_base_url.rstrip("/")
+    if provider == "siliconflow":
+        return settings.siliconflow_base_url.rstrip("/")
     raise ValueError(f"Unknown provider: {provider}")

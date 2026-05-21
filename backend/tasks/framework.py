@@ -7,7 +7,7 @@ import logging
 
 from app import config
 from app.database import SessionLocal
-from app.knowledge_base import search as kb_search
+
 from app.llm import call_llm
 from app.models import TaskStep
 from app.params_compat import extract_requirements_list
@@ -111,15 +111,7 @@ def run_framework(task_id: int, tenant_id: str | None = None, user_id: str | Non
             return
         analyze_text = str(analyze_text)
 
-        # KB search: query = truncated analyze or fixed string (Dify used llm.text)
-        query = (
-            analyze_text[: config.FRAMEWORK_KB_QUERY_MAX_LEN].strip()
-            if analyze_text
-            else config.FRAMEWORK_KB_FALLBACK_QUERY
-        )
-        chunks = kb_search(query=query, top_k=10, task_id=task_id)
-        context_text = "\n\n".join(chunks) if chunks else ""
-
+        # Framework generation relies on the full analyze text; no KB retrieval needed here.
         # Read existing framework step output for extra_points and current chapters (for "user has ideas" mode)
         extra_points: list[str] = []
         current_chapters: list[dict] = []
@@ -140,7 +132,7 @@ def run_framework(task_id: int, tenant_id: str | None = None, user_id: str | Non
         messages = build_framework_messages(
             analyze_text=analyze_text,
             requirements=requirements_list,
-            context_text=context_text,
+            context_text="",
             extra_points=extra_points if extra_points else None,
             current_chapters=current_chapters if extra_points else None,
             scoring_items=scoring_items,

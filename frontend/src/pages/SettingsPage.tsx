@@ -12,6 +12,7 @@ import {
   postSettingsKnowledgeBaseTest,
   postSettingsLlm,
 } from '../api/settings'
+import { listKbCollections, type KbCollection } from '../api/knowledgeBase'
 import { getIdentityScopeKey } from '../api/client'
 import { designTokens } from '../theme/tokens'
 import '../App.css'
@@ -20,6 +21,7 @@ const { Title, Text } = Typography
 
 const PROVIDERS = [
   { key: 'deepseek', label: 'DeepSeek', defaultBaseUrl: 'https://api.deepseek.com' },
+  { key: 'siliconflow', label: 'SiliconFlow（Embedding）', defaultBaseUrl: 'https://api.siliconflow.cn/v1' },
 ] as const
 
 const DEFAULT_EXPORT_FORMAT: ExportFormatConfig = {
@@ -48,10 +50,11 @@ function SettingsPage() {
   const [inputByProvider, setInputByProvider] = useState<Record<string, string>>({})
   const [baseUrlByProvider, setBaseUrlByProvider] = useState<Record<string, string>>({})
   const [exportFormat, setExportFormat] = useState<ExportFormatConfig>(DEFAULT_EXPORT_FORMAT)
-  const [kbType, setKbType] = useState<'none' | 'ragflow'>('none')
+  const [kbType, setKbType] = useState<'none' | 'ragflow' | 'internal'>('none')
   const [ragflowApiUrl, setRagflowApiUrl] = useState('')
   const [ragflowApiKey, setRagflowApiKey] = useState('')
   const [ragflowDatasetIds, setRagflowDatasetIds] = useState('')
+  const [internalCollectionId, setInternalCollectionId] = useState<number | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['settings', identityScope, 'llm'],
@@ -78,11 +81,17 @@ function SettingsPage() {
     queryFn: getSettingsKnowledgeBase,
   })
 
+  const { data: kbCollections = [] } = useQuery({
+    queryKey: ['kb-collections'],
+    queryFn: listKbCollections,
+  })
+
   useEffect(() => {
     if (kbData) {
-      setKbType((kbData.kb_type as 'none' | 'ragflow') || 'none')
+      setKbType((kbData.kb_type as 'none' | 'ragflow' | 'internal') || 'none')
       setRagflowApiUrl(kbData.ragflow_api_url ?? '')
       setRagflowDatasetIds(kbData.ragflow_dataset_ids ?? '')
+      setInternalCollectionId(kbData.internal_collection_id ?? null)
     }
   }, [kbData])
 
@@ -322,6 +331,7 @@ function SettingsPage() {
                 onChange={(v) => setKbType(v ?? 'none')}
                 options={[
                   { label: '不使用', value: 'none' },
+                  { label: '内部知识库', value: 'internal' },
                   { label: 'RAGFlow', value: 'ragflow' },
                 ]}
               />
@@ -330,6 +340,49 @@ function SettingsPage() {
               <Text type="secondary" style={{ display: 'block', marginBottom: designTokens.marginSM }}>
                 未使用知识库检索。
               </Text>
+            )}
+            {kbType === 'internal' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: designTokens.marginSM }}>
+                  <div style={{ width: 100, minWidth: 100, flexShrink: 0 }}>
+                    <Text>选择知识库</Text>
+                  </div>
+                  <Select
+                    style={{ width: 360 }}
+                    placeholder="请选择知识库"
+                    value={internalCollectionId}
+                    onChange={(v) => setInternalCollectionId(v)}
+                    options={kbCollections.map((c: KbCollection) => ({
+                      label: `${c.name}（${c.document_count} 份文档）`,
+                      value: c.id,
+                    }))}
+                    notFoundContent="暂无知识库，请先在知识库页面创建"
+                  />
+                </div>
+                <div style={{ marginTop: designTokens.margin, display: 'flex', alignItems: 'center', gap: designTokens.marginSM }}>
+                  <Button
+                    type="primary"
+                    loading={saveKnowledgeBaseMutation.isPending}
+                    onClick={() => {
+                      if (!internalCollectionId) {
+                        message.warning('请选择知识库')
+                        return
+                      }
+                      saveKnowledgeBaseMutation.mutate({
+                        kb_type: 'internal',
+                        internal_collection_id: internalCollectionId,
+                      })
+                    }}
+                  >
+                    保存
+                  </Button>
+                  {!kbData?.siliconflow_configured && (
+                    <Text type="warning" style={{ fontSize: 12 }}>
+                      请先在上方「大模型 API」中配置 SiliconFlow 的 API Key（provider 选 siliconflow）
+                    </Text>
+                  )}
+                </div>
+              </div>
             )}
             {kbType === 'ragflow' && (
               <div>

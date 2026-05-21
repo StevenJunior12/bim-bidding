@@ -87,10 +87,28 @@ def _search_ragflow(query: str, top_k: int = 10, *, task_id: int | None = None) 
 def get_search_fn(task_id: int | None = None) -> SearchFn:
     """Return the search implementation based on effective kb_type (DB then env)."""
     tenant_id, user_id = _resolve_scope_from_task(task_id)
-    kb_type = get_kb_config(tenant_id=tenant_id, user_id=user_id).get("kb_type") or config.KNOWLEDGE_BASE_TYPE
+    kb_config = get_kb_config(tenant_id=tenant_id, user_id=user_id)
+    kb_type = kb_config.get("kb_type") or config.KNOWLEDGE_BASE_TYPE
     if kb_type == "ragflow":
         return lambda q, k: _search_ragflow(q, k, task_id=task_id)
+    if kb_type == "internal":
+        collection_id = kb_config.get("internal_collection_id")
+        if collection_id:
+            return lambda q, k: _search_internal(q, k, collection_id=collection_id, tenant_id=tenant_id, user_id=user_id)
+        logger.warning("Internal KB selected but no collection configured")
+        return _search_none
     return _search_none
+
+
+def _search_internal(
+    query: str, top_k: int, *, collection_id: int, tenant_id: str, user_id: str,
+) -> list[str]:
+    try:
+        from app.kb_search import search_internal
+        return search_internal(query, top_k, collection_id=collection_id, tenant_id=tenant_id, user_id=user_id)
+    except Exception as e:
+        logger.warning("Internal KB search failed: %s", e)
+        return []
 
 
 def search(query: str, top_k: int = 10, *, task_id: int | None = None) -> list[str]:

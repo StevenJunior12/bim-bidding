@@ -25,7 +25,7 @@ def call_llm(
 
     Args:
         provider: "deepseek" (used for default base_url and key lookup).
-        model: Model name (e.g. deepseek-chat, deepseek-v3).
+        model: Model name (e.g. deepseek-v4-flash, deepseek-chat).
         messages: OpenAI format, e.g. [{"role": "user", "content": "..."}].
         temperature: 0..1.
         api_key: If None, taken from config.get_llm_api_key(provider).

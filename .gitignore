@@ -1,4 +1,4 @@
-# Python（venv 常见名为 venv 或 .venv，勿只写死一种）
+# Python
 venv/
 .venv/
 env/
@@ -14,43 +14,44 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# 敏感配置（不要提交 API Key、数据库密码等）
+# Secrets
 .env
 backend/.env
 frontend/.env.development
 frontend/.env.production
 
-# 上传文件（按需：若不想把用户上传的 PDF 进仓库就保留下面这行）
+# Uploads / indexes
 backend/data/uploads/
 backend/data/faiss/
 
-# 脚本/演示生成的输出（勿提交）
+# Generated files
 backend/test_table_output.docx
 
 # Node
 frontend/node_modules/
 frontend/dist/
 
-# 日志与临时
+# Logs
 *.log
 .env.local
 .env.*.local
 
-# 开发/阶段文档（不提交到仓库）
+# Draft docs
 docs/
-各阶段指导/
+各阶段指导
 /USER_ISOLATION_API_HANDOFF.md
 /USER_ISOLATION_CHECKLIST.md
 PROJECT_ASSESSMENT.md
 *分阶段*.md
+MIGRATION_MEMO.md
 README-backend.md
 Ragflowapi.md
-内蒙古建行BIM实施方案-20230927.txt
+内蒙古自治区BIM实施方案-20230927.txt
 md表格对比.md
 BIM技术要求.md
 ISSUES.md
 
-# 系统与编辑器
+# OS / editors
 .DS_Store
 Thumbs.db
 .idea/

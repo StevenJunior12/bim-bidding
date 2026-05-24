@@ -469,6 +469,8 @@ def set_kb_config(
     tenant, user = _resolve_scope(tenant_id, user_id)
     db: Session = SessionLocal()
     try:
+        if kb_type == "internal" and internal_collection_id is None:
+            raise ValueError("internal 知识库必须指定 collection")
         # Validate collection ownership when internal is selected
         if kb_type == "internal" and internal_collection_id is not None:
             from app.models import KbCollection
@@ -557,7 +559,6 @@ def get_ragflow_effective(
         logger.debug("get_ragflow_effective DB read failed: %s", e)
     finally:
         db.close()
-    # Fallback to env
     if config.RAGFLOW_API_URL and config.RAGFLOW_API_KEY and config.get_ragflow_dataset_ids():
         return (
             config.RAGFLOW_API_URL.rstrip("/"),
@@ -565,4 +566,3 @@ def get_ragflow_effective(
             config.get_ragflow_dataset_ids(),
         )
     return None
-

@@ -9,10 +9,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from celery_app import app as celery_app
 from app import config
 from app.auth import Principal, get_principal
 from app.database import get_db
+from app.kb_faiss import rebuild_collection_index, remove_collection_index
 from app.models import KbChunk, KbCollection, KbDocument
 from app.upload_sniff import bytes_match_upload_extension
 from tasks.kb_ingest import run_kb_ingest
@@ -21,8 +21,6 @@ router = APIRouter(prefix="/api/kb", tags=["knowledge-base"])
 
 ALLOWED_EXTENSIONS = (".pdf", ".docx")
 
-
-# --- Schemas ---
 
 class CreateCollectionBody(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -58,8 +56,6 @@ class ChunkResponse(BaseModel):
     chunk_index: int
 
 
-# --- Helpers ---
-
 def _require_collection(collection_id: int, db: Session, principal: Principal) -> KbCollection:
     col = db.query(KbCollection).filter(
         KbCollection.id == collection_id,
@@ -81,8 +77,6 @@ def _require_document(doc_id: int, collection_id: int, db: Session, principal: P
         raise HTTPException(status_code=404, detail="文档不存在")
     return doc
 
-
-# --- Collection endpoints ---
 
 @router.post("/collections", response_model=CollectionResponse, status_code=201)
 def create_collection(
@@ -146,13 +140,14 @@ def delete_collection(
     principal: Principal = Depends(get_principal),
 ):
     col = _require_collection(collection_id, db, principal)
-    # Cascade deletes documents and chunks
     db.delete(col)
     db.commit()
+    try:
+        remove_collection_index(collection_id)
+    except Exception:
+        pass
     return None
 
-
-# --- Document endpoints ---
 
 @router.post("/collections/{collection_id}/documents", response_model=DocumentResponse, status_code=201)
 def upload_document(
@@ -168,14 +163,12 @@ def upload_document(
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"不支持的文件类型，仅限 {', '.join(ALLOWED_EXTENSIONS)}")
 
-    # Validate magic bytes
     head = file.file.read(8192)
     if len(head) < 4:
         raise HTTPException(status_code=400, detail="文件过小或为空")
     if not bytes_match_upload_extension(suffix, head):
         raise HTTPException(status_code=400, detail="文件内容与扩展名不符")
 
-    # Store file
     kb_dir = config.UPLOAD_DIR / "kb" / f"tenant_{principal.tenant_id}" / f"user_{principal.user_id}"
     kb_dir.mkdir(parents=True, exist_ok=True)
     stored_name = f"{uuid.uuid4().hex}{suffix}"
@@ -213,7 +206,6 @@ def upload_document(
     db.commit()
     db.refresh(doc)
 
-    # Dispatch Celery task
     run_kb_ingest.delay(doc.id, tenant_id=principal.tenant_id, user_id=principal.user_id)
 
     return DocumentResponse(
@@ -268,10 +260,12 @@ def delete_document(
     doc = _require_document(doc_id, collection_id, db, principal)
     db.delete(doc)
     db.commit()
+    try:
+        rebuild_collection_index(collection_id)
+    except Exception:
+        pass
     return None
 
-
-# --- Chunk browsing (debug) ---
 
 @router.get("/collections/{collection_id}/documents/{doc_id}/chunks", response_model=list[ChunkResponse])
 def list_chunks(
@@ -298,8 +292,6 @@ def list_chunks(
         for c in chunks
     ]
 
-
-# --- Test search (debug) ---
 
 class TestSearchBody(BaseModel):
     query: str = Field(..., min_length=1)

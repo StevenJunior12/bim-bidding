@@ -22,6 +22,7 @@ frontend/.env.production
 
 # 上传文件（按需：若不想把用户上传的 PDF 进仓库就保留下面这行）
 backend/data/uploads/
+backend/data/faiss/
 
 # 脚本/演示生成的输出（勿提交）
 backend/test_table_output.docx

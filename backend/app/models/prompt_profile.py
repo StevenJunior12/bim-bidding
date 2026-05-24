@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Index, Integer, String, text
+from sqlalchemy import Boolean, DateTime, Index, Integer, JSON, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.task import Base
@@ -14,14 +14,11 @@ class PromptProfile(Base):
     __tablename__ = "prompt_profiles"
     __table_args__ = (
         Index("ix_prompt_profiles_tenant_user_updated_at", "tenant_id", "user_id", "updated_at"),
-        Index(
-            "uq_prompt_profiles_tenant_user_slug",
+        UniqueConstraint(
             "tenant_id",
             "user_id",
             "slug",
-            unique=True,
-            postgresql_where=text("slug IS NOT NULL"),
-            sqlite_where=text("slug IS NOT NULL"),
+            name="uq_prompt_profiles_tenant_user_slug",
         ),
     )
 

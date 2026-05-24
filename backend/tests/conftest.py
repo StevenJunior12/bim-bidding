@@ -1,8 +1,4 @@
-"""Pytest 配置。
-
-`app.settings_store` 在 import 时要求有效的 Fernet `SETTINGS_SECRET_KEY`；
-在加载任何会间接 import 该模块的测试前，为未配置的环境生成一次性测试密钥。
-"""
+"""Pytest configuration."""
 from __future__ import annotations
 
 import os

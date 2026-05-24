@@ -1,18 +1,17 @@
-"""Internal pgvector knowledge base search with optional rerank."""
+"""Internal knowledge base search with FAISS recall + rerank."""
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 
-from sqlalchemy import text
-
-from app.database import SessionLocal
 from app.kb_embedding import embed_query, rerank_texts
+from app.kb_faiss import search_collection
+from app.database import SessionLocal
+from app.models import KbChunk, KbDocument
 from app.settings_store import get_api_key_from_db
 
 logger = logging.getLogger(__name__)
 
-# Over-retrieve from vector search, then rerank down to top_k
 _CANDIDATE_MULTIPLIER = 4
 
 
@@ -34,62 +33,56 @@ def search_internal(
     tenant_id: str,
     user_id: str,
 ) -> list[SearchResult]:
-    """Two-stage search: vector recall + rerank.
-
-    Stage 1: pgvector cosine similarity → top_k * _CANDIDATE_MULTIPLIER candidates
-    Stage 2: rerank (cross-encoder) → top_k final results
-    If rerank fails, fall back to vector-only results.
-    """
+    """Two-stage search: FAISS recall + rerank."""
     api_key = get_api_key_from_db("siliconflow", tenant_id=tenant_id, user_id=user_id)
     if not api_key:
         logger.warning("search_internal: no SiliconFlow API key for tenant=%s user=%s", tenant_id, user_id)
         return []
 
     query_vec = embed_query(query, api_key=api_key)
-
-    # Stage 1: vector search — over-retrieve for rerank
-    candidate_limit = top_k * _CANDIDATE_MULTIPLIER
+    hits = search_collection(collection_id, query_vec, top_k * _CANDIDATE_MULTIPLIER)
+    if not hits:
+        logger.info("search_internal: no FAISS hits for collection_id=%s", collection_id)
+        return []
 
     db = SessionLocal()
     try:
-        result = db.execute(
-            text(
-                """
-                SELECT c.content, c.heading_path, c.chunk_index,
-                       d.filename AS doc_filename,
-                       1 - (c.embedding <=> :query_vec) AS similarity
-                FROM kb_chunks c
-                JOIN kb_documents d ON c.document_id = d.id
-                JOIN kb_collections col ON c.collection_id = col.id
-                WHERE col.id = :collection_id
-                  AND col.tenant_id = :tenant_id
-                  AND col.user_id = :user_id
-                  AND d.status = 'ready'
-                  AND c.embedding IS NOT NULL
-                ORDER BY c.embedding <=> :query_vec
-                LIMIT :limit
-                """
-            ),
-            {
-                "collection_id": collection_id,
-                "tenant_id": tenant_id,
-                "user_id": user_id,
-                "query_vec": str(query_vec),
-                "limit": candidate_limit,
-            },
-        )
-        candidates = [
-            SearchResult(
-                content=row[0],
-                heading_path=row[1],
-                chunk_index=row[2],
-                doc_filename=row[3],
-                similarity=float(row[4]),
+        chunk_ids = [hit.chunk_id for hit in hits]
+        rows = (
+            db.query(
+                KbChunk.id,
+                KbChunk.content,
+                KbChunk.heading_path,
+                KbChunk.chunk_index,
+                KbDocument.filename,
             )
-            for row in result.fetchall()
-        ]
+            .join(KbDocument, KbChunk.document_id == KbDocument.id)
+            .filter(
+                KbChunk.id.in_(chunk_ids),
+                KbDocument.status == "ready",
+            )
+            .all()
+        )
+        row_map = {
+            chunk_id: (content, heading_path, chunk_index, doc_filename)
+            for chunk_id, content, heading_path, chunk_index, doc_filename in rows
+        }
+        candidates: list[SearchResult] = []
+        for hit in hits:
+            row = row_map.get(hit.chunk_id)
+            if not row:
+                continue
+            candidates.append(
+                SearchResult(
+                    content=row[0],
+                    heading_path=row[1],
+                    chunk_index=row[2],
+                    doc_filename=row[3],
+                    similarity=hit.score,
+                )
+            )
     except Exception as e:
-        logger.warning("search_internal vector stage failed: %s", e)
+        logger.warning("search_internal metadata stage failed: %s", e)
         return []
     finally:
         db.close()
@@ -97,11 +90,14 @@ def search_internal(
     if not candidates:
         return []
 
-    # If few candidates, no need to rerank
+    candidates.sort(key=lambda x: x.similarity, reverse=True)
+    candidate_limit = top_k * _CANDIDATE_MULTIPLIER
+    if len(candidates) > candidate_limit:
+        candidates = candidates[:candidate_limit]
+
     if len(candidates) <= top_k:
         return candidates
 
-    # Stage 2: rerank
     try:
         rerank_results = rerank_texts(
             query,
@@ -116,7 +112,6 @@ def search_internal(
     if not rerank_results:
         return candidates[:top_k]
 
-    # Map rerank results back to SearchResults
     final: list[SearchResult] = []
     for rr in rerank_results:
         hit = candidates[rr.index]

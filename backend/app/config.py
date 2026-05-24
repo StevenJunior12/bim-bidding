@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Fernet 32-byte URL-safe base64；与 backend/.env 中 SETTINGS_SECRET_KEY 对应（SEC-02）
     settings_secret_key: str = Field(default="", validation_alias="SETTINGS_SECRET_KEY")
     redis_url: str = "redis://localhost:6379/0"
-    database_url: str = "postgresql://user:password@localhost:5432/bim_bidding"
+    database_url: str = "mysql+pymysql://root:password@localhost:3306/bim_bidding?charset=utf8mb4"
 
     upload_dir_raw: str = Field(default="data/uploads", validation_alias="UPLOAD_DIR")
     max_upload_size_mb: int = Field(default=50, validation_alias="MAX_UPLOAD_SIZE_MB")
@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     siliconflow_embedding_model: str = Field(default="BAAI/bge-m3", validation_alias="SILICONFLOW_EMBEDDING_MODEL")
     siliconflow_embedding_dims: int = Field(default=1024, validation_alias="SILICONFLOW_EMBEDDING_DIMS")
     kb_chunk_batch_size: int = Field(default=32, validation_alias="KB_CHUNK_BATCH_SIZE")
+    faiss_index_dir_raw: str = Field(default="data/faiss", validation_alias="FAISS_INDEX_DIR")
 
     knowledge_base_type_env: str = Field(default="", validation_alias="KNOWLEDGE_BASE_TYPE")
 
@@ -88,6 +89,7 @@ class Settings(BaseSettings):
 
     upload_dir: Path = Field(default=Path("."))
     export_dir: Path = Field(default=Path("."))
+    faiss_index_dir: Path = Field(default=Path("."))
     max_upload_size_bytes: int = 0
     knowledge_base_type: str = "none"
 
@@ -153,6 +155,10 @@ class Settings(BaseSettings):
         e_path = Path(e_raw)
         export_dir = e_path.resolve() if e_path.is_absolute() else (_BACKEND_ROOT / e_raw).resolve()
 
+        f_raw = self.faiss_index_dir_raw
+        f_path = Path(f_raw)
+        faiss_index_dir = f_path.resolve() if f_path.is_absolute() else (_BACKEND_ROOT / f_raw).resolve()
+
         max_bytes = self.max_upload_size_mb * 1024 * 1024
 
         kb_env = self.knowledge_base_type_env.strip().lower()
@@ -165,6 +171,7 @@ class Settings(BaseSettings):
 
         object.__setattr__(self, "upload_dir", upload_dir)
         object.__setattr__(self, "export_dir", export_dir)
+        object.__setattr__(self, "faiss_index_dir", faiss_index_dir)
         object.__setattr__(self, "max_upload_size_bytes", max_bytes)
         object.__setattr__(self, "knowledge_base_type", kb_type)
         return self
@@ -184,6 +191,7 @@ UPLOAD_DIR: Path = settings.upload_dir
 MAX_UPLOAD_SIZE_MB: int = settings.max_upload_size_mb
 MAX_UPLOAD_SIZE_BYTES: int = settings.max_upload_size_bytes
 EXPORT_DIR: Path = settings.export_dir
+FAISS_INDEX_DIR: Path = settings.faiss_index_dir
 DEEPSEEK_API_KEY: str = settings.deepseek_api_key
 DEEPSEEK_BASE_URL: str = settings.deepseek_base_url
 LLM_TIMEOUT_CONNECT: float = settings.llm_timeout_connect

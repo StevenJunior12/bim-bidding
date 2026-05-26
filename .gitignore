@@ -36,6 +36,10 @@ frontend/dist/
 .env.local
 .env.*.local
 
+# Local launch scripts
+/start-all.bat
+/start-all.ps1
+
 # Draft docs
 docs/
 各阶段指导

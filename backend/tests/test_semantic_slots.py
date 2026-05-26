@@ -5,8 +5,8 @@ import app.prompts as prompts
 from app.models.task import Base
 from app.semantic_slots import (
     CONTRACT_PROMPT_ATTRS,
-    SEMANTIC_SLOTS,
     SEMANTIC_SLOT_KEYS,
+    SEMANTIC_SLOTS,
     assert_semantic_catalog_matches_slots,
     catalog_id_for_slot,
     get_default_semantic_overrides,

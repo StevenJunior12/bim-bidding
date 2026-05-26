@@ -8,6 +8,7 @@ from app.models import TaskStep
 from app.parser import parse_document
 from celery_app import app
 from sqlalchemy.orm import Session
+
 from tasks.scope_guard import validate_task_scope
 
 logger = logging.getLogger(__name__)

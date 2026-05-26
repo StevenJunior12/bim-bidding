@@ -8,8 +8,8 @@ from tasks.framework import run_framework
 from app.auth import Principal, get_principal
 from app.database import get_db
 from app.diff_compare import compute_diff
-from app.params_compat import params_snapshot_has_requirements_list
 from app.models import TaskStep
+from app.params_compat import params_snapshot_has_requirements_list
 from app.schemas.compare import DiffResponse
 from app.schemas.task import AcceptFrameworkRequest
 from app.services.step_service import (

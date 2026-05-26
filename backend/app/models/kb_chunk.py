@@ -1,7 +1,7 @@
 """Knowledge base chunk: document segment with serialized embedding."""
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.task import Base

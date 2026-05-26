@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from app.database import SessionLocal
 from app.kb_embedding import embed_query, rerank_texts
 from app.kb_faiss import search_collection
-from app.database import SessionLocal
 from app.models import KbChunk, KbDocument
 from app.settings_store import get_api_key_from_db
 
@@ -114,7 +114,7 @@ def search_internal(
 
     final: list[SearchResult] = []
     for rr in rerank_results:
-        hit = candidates[rr.index]
-        hit.rerank_score = round(rr.relevance_score, 4)
-        final.append(hit)
+        result = candidates[rr.index]
+        result.rerank_score = round(rr.relevance_score, 4)
+        final.append(result)
     return final

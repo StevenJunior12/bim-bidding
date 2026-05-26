@@ -1,7 +1,12 @@
 """Tests for review prompts: build_review_messages and parse_review_output."""
 import unittest
 
-from app.prompts import REVIEW_OUTPUT_FORMAT_SPEC, REVIEW_SYSTEM, build_review_messages, parse_review_output
+from app.prompts import (
+    REVIEW_OUTPUT_FORMAT_SPEC,
+    REVIEW_SYSTEM,
+    build_review_messages,
+    parse_review_output,
+)
 
 
 class TestBuildReviewMessages(unittest.TestCase):

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.task import Base

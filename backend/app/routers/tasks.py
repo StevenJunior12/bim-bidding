@@ -14,6 +14,7 @@ from datetime import datetime
 
 from celery_app import app as celery_app
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app import config
@@ -30,7 +31,6 @@ from app.schemas.task import (
     TaskStepSchema,
     TaskSummary,
 )
-from sqlalchemy import or_
 from app.services.step_service import (
     compute_compare_meta_for_task,
     compute_compare_meta_from_steps,

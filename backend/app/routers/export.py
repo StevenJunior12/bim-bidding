@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.auth import Principal, get_principal
 from app.assembler import assemble_full_markdown
+from app.auth import Principal, get_principal
 from app.database import get_db
 from app.export_docx import markdown_to_docx
 from app.services.step_service import require_task

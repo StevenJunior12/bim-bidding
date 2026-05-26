@@ -145,7 +145,7 @@ def search_collection(collection_id: int, query_vector: list[float], top_k: int)
     scores, indices = index.search(query, min(top_k, len(chunk_ids)))
 
     hits: list[FaissHit] = []
-    for score, idx in zip(scores[0], indices[0]):
+    for score, idx in zip(scores[0], indices[0], strict=True):
         if idx < 0 or idx >= len(chunk_ids):
             continue
         hits.append(FaissHit(chunk_id=int(chunk_ids[idx]), score=float(score)))

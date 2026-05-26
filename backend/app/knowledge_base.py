@@ -94,18 +94,39 @@ def get_search_fn(task_id: int | None = None) -> SearchFn:
     if kb_type == "internal":
         collection_id = kb_config.get("internal_collection_id")
         if collection_id:
-            return lambda q, k: _search_internal(q, k, collection_id=collection_id, tenant_id=tenant_id, user_id=user_id)
+            scoped_tenant_id = tenant_id or config.AUTH_DEFAULT_TENANT_ID
+            scoped_user_id = user_id or config.AUTH_DEFAULT_USER_ID
+            return lambda q, k: _search_internal(
+                q,
+                k,
+                collection_id=int(collection_id),
+                tenant_id=scoped_tenant_id,
+                user_id=scoped_user_id,
+            )
         logger.warning("Internal KB selected but no collection configured")
         return _search_none
     return _search_none
 
 
 def _search_internal(
-    query: str, top_k: int, *, collection_id: int, tenant_id: str, user_id: str,
+    query: str,
+    top_k: int,
+    *,
+    collection_id: int,
+    tenant_id: str,
+    user_id: str,
 ) -> list[str]:
     try:
         from app.kb_search import search_internal
-        return search_internal(query, top_k, collection_id=collection_id, tenant_id=tenant_id, user_id=user_id)
+
+        results = search_internal(
+            query,
+            top_k,
+            collection_id=collection_id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+        )
+        return [result.content for result in results]
     except Exception as e:
         logger.warning("Internal KB search failed: %s", e)
         return []

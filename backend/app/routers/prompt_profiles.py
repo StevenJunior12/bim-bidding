@@ -20,6 +20,7 @@ from app.schemas.prompt_profile import (
     PromptProfileSummary,
     PromptProfileUpdate,
 )
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/prompt-profiles", tags=["prompt-profiles"])

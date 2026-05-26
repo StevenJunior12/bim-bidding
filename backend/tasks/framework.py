@@ -5,9 +5,7 @@ Framework step is set to waiting_user on success (user must accept/regenerate/ad
 import json
 import logging
 
-from app import config
 from app.database import SessionLocal
-
 from app.llm import call_llm
 from app.models import TaskStep
 from app.params_compat import extract_requirements_list
@@ -15,6 +13,7 @@ from app.prompt_merge import load_merged_semantic_for_task
 from app.prompts import build_framework_messages, parse_framework_text
 from celery_app import app
 from sqlalchemy.orm import Session
+
 from tasks.scope_guard import validate_task_scope
 
 logger = logging.getLogger(__name__)

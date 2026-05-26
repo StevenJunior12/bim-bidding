@@ -3,9 +3,6 @@ from __future__ import annotations
 
 import logging
 
-from celery_app import app
-from sqlalchemy.orm import Session
-
 from app import config
 from app.database import SessionLocal
 from app.kb_chunker import chunk_sections
@@ -14,6 +11,8 @@ from app.kb_faiss import rebuild_collection_index
 from app.kb_parser import parse_document_structured
 from app.models import KbChunk, KbCollection, KbDocument
 from app.settings_store import get_api_key_from_db
+from celery_app import app
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

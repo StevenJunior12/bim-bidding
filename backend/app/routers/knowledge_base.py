@@ -4,10 +4,11 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from tasks.kb_ingest import run_kb_ingest
 
 from app import config
 from app.auth import Principal, get_principal
@@ -15,7 +16,6 @@ from app.database import get_db
 from app.kb_faiss import rebuild_collection_index, remove_collection_index
 from app.models import KbChunk, KbCollection, KbDocument
 from app.upload_sniff import bytes_match_upload_extension
-from tasks.kb_ingest import run_kb_ingest
 
 router = APIRouter(prefix="/api/kb", tags=["knowledge-base"])
 

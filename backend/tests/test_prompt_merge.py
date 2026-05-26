@@ -18,7 +18,6 @@ class TestMergeSemanticOverrides(unittest.TestCase):
         self.assertEqual(out["analyze_user"], base["analyze_user"])
 
     def test_drops_unknown_keys(self):
-        base = get_default_semantic_overrides()
         out = merge_semantic_overrides({"evil_key": "inject", "analyze_system": "ok"})
         self.assertNotIn("evil_key", out)
         self.assertEqual(set(out.keys()), set(SEMANTIC_SLOT_KEYS))

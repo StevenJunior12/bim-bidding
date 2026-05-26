@@ -16,7 +16,6 @@ from __future__ import annotations
 import logging
 import math
 import re
-from collections import Counter
 from dataclasses import dataclass
 
 from app.kb_parser import Section
@@ -545,7 +544,7 @@ def _split_sentences(text: str) -> list[str]:
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
     na = math.sqrt(sum(x * x for x in a))
     nb = math.sqrt(sum(x * x for x in b))
     if na == 0 or nb == 0:

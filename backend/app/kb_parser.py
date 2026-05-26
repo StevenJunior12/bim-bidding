@@ -141,7 +141,7 @@ def _estimate_body_font_size(path: Path) -> float:
 
     if not size_counts:
         return 0.0
-    return max(size_counts, key=size_counts.get)
+    return max(size_counts, key=lambda size: size_counts[size])
 
 
 def _parse_pdf_structured(path: Path) -> list[Section]:

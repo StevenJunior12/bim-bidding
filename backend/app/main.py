@@ -13,16 +13,28 @@ from app.database import check_db, engine
 from app.models import Base
 from app.routers import (
     chapters as chapters_router,
+)
+from app.routers import (
     compare,
-    export as export_router,
-    framework as framework_router,
-    knowledge_base as kb_router,
-    prompt_profiles as prompt_profiles_router,
-    review as review_router,
     settings,
     steps,
     tasks,
     upload,
+)
+from app.routers import (
+    export as export_router,
+)
+from app.routers import (
+    framework as framework_router,
+)
+from app.routers import (
+    knowledge_base as kb_router,
+)
+from app.routers import (
+    prompt_profiles as prompt_profiles_router,
+)
+from app.routers import (
+    review as review_router,
 )
 
 logger = logging.getLogger(__name__)

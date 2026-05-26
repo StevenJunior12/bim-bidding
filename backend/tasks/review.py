@@ -8,7 +8,6 @@ import logging
 
 from app import config
 from app.database import SessionLocal
-
 from app.llm import call_llm
 from app.models import TaskStep
 from app.params_compat import extract_requirements_list
@@ -22,6 +21,7 @@ from app.review_prompt_assembly import (
 )
 from celery_app import app
 from sqlalchemy.orm import Session
+
 from tasks.scope_guard import validate_task_scope
 
 logger = logging.getLogger(__name__)
@@ -349,6 +349,7 @@ def run_review_chapter(
                 analyze_text=analyze_text,
                 params_review_context=params_summary,
                 kb_context="",
+                semantic_overrides=merged,
             )
             llm_text = call_llm(
                 provider=provider,
